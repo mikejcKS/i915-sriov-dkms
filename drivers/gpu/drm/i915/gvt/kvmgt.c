@@ -44,7 +44,6 @@
 #include <linux/eventfd.h>
 #include <linux/mdev.h>
 #include <linux/debugfs.h>
-#include <linux/version.h>
 
 #include <linux/nospec.h>
 
@@ -151,7 +150,7 @@ static int gvt_pin_guest_page(struct intel_vgpu *vgpu, unsigned long gfn,
 	int ret;
 
 	/*
-	 * We pin the pages one-by-one to avoid allocating a big arrary
+	 * We pin the pages one-by-one to avoid allocating a big array
 	 * on stack to hold pfns.
 	 */
 	for (npage = 0; npage < total_pages; npage++) {
@@ -2008,4 +2007,10 @@ MODULE_AUTHOR("Intel Corporation");
 
 #ifdef DKMS_MODULE_VERSION
 MODULE_VERSION(DKMS_MODULE_VERSION);
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 13, 0)
+MODULE_IMPORT_NS(INTEL_SRIOV_COMPAT);
+#else
+MODULE_IMPORT_NS("INTEL_SRIOV_COMPAT");
 #endif

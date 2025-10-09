@@ -29,7 +29,6 @@
 #include <linux/module.h>
 #include <linux/stat.h>
 #include <linux/sysfs.h>
-#include <linux/version.h>
 
 #include "gt/intel_gt_regs.h"
 #include "gt/intel_rc6.h"
@@ -60,7 +59,7 @@ static int l3_access_valid(struct drm_i915_private *i915, loff_t offset)
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6,15,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
 static ssize_t
 i915_l3_read(struct file *filp, struct kobject *kobj,
 	     struct bin_attribute *attr, char *buf,
@@ -95,7 +94,7 @@ i915_l3_read(struct file *filp, struct kobject *kobj,
 	return count;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6,15,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
 static ssize_t
 i915_l3_write(struct file *filp, struct kobject *kobj,
 	      struct bin_attribute *attr, char *buf,
@@ -156,13 +155,8 @@ i915_l3_write(struct file *filp, struct kobject *kobj,
 static const struct bin_attribute dpf_attrs = {
 	.attr = {.name = "l3_parity", .mode = (S_IRUSR | S_IWUSR)},
 	.size = GEN7_L3LOG_SIZE,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6,15,0)
 	.read = i915_l3_read,
 	.write = i915_l3_write,
-#else
-	.read_new = i915_l3_read,
-	.write_new = i915_l3_write,
-#endif
 	.mmap = NULL,
 	.private = (void *)0
 };
@@ -170,13 +164,8 @@ static const struct bin_attribute dpf_attrs = {
 static const struct bin_attribute dpf_attrs_1 = {
 	.attr = {.name = "l3_parity_slice_1", .mode = (S_IRUSR | S_IWUSR)},
 	.size = GEN7_L3LOG_SIZE,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6,15,0)
 	.read = i915_l3_read,
 	.write = i915_l3_write,
-#else
-	.read_new = i915_l3_read,
-	.write_new = i915_l3_write,
-#endif
 	.mmap = NULL,
 	.private = (void *)1
 };

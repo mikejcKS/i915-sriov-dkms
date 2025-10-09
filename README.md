@@ -1,6 +1,6 @@
-# Linux i915 driver (dkms module) with SR-IOV support for linux 6.8-6.15(-rc5)
+# Linux i915 and xe driver (dkms module) with SR-IOV support for linux 6.12 ~ 6.17
 
-This repo is a code snapshot of the i915 module from https://github.com/intel/mainline-tracking/tree/linux/v6.12 and will randomly merge patches from the linux-stable tree.
+This repo is a code snapshot of the i915 and xe modules from the mainline linux kernel with SR-IOV support ported from the [intel/mainline-tracking.git](https://github.com/intel/mainline-tracking.git)
 
 ## Warning
 
@@ -8,21 +8,31 @@ This package is **highly experimental**, you should only use it when you know wh
 
 You need to install this dkms module in **both host and guest!**
 
-Tested kernel versions: 6.12.10-zen1/6.11.9-arch1/6.10.9-arch1/6.9.10-arch1/6.8.9-arch1 with ArchLinux
+## Required kernel versions
+Required kernel: **6.12.20 ~ 6.17.x**
 
+For older versions of the kernel (v6.8 ~ v6.12), please use the [2025.07.22](https://github.com/strongtz/i915-sriov-dkms/releases/tag/2025.07.22) release.
+
+For v6.1 ~ v6.7, please use [intel-lts-v6.1](https://github.com/strongtz/i915-sriov-dkms/tree/intel-lts-v6.1) branch instead.
+
+It is recommended that to upgrade to a supported kernel, the older branches will no longer be maintained.
 
 ## Required Kernel Parameters
+
+Starting from the current version, this repo provides both the i915 and xe drivers.
+You can switch between them by modifying the kernel parameters.
+
+### i915
 ```
 intel_iommu=on i915.enable_guc=3 i915.max_vfs=7 module_blacklist=xe
 ```
 
-Besides `intel_iommu=on`, the other 3 parameters could be applied by `modprobe` by putting following content to `/etc/modprobe.d/i915-sriov-dkms.conf`
+### xe
+```
+intel_iommu=on xe.max_vfs=7 xe.force_probe=${device_id} module_blacklist=i915
+```
 
-```
-blacklist xe
-options i915 enable_guc=3
-options i915 max_vfs=7
-```
+Replace `${device_id}` with the output from `cat /sys/devices/pci0000:00/0000:00:02.0/device` command
 
 ## Creating Virtual Functions (VF)
 
@@ -32,32 +42,29 @@ echo 1 > /sys/devices/pci0000:00/0000:00:02.0/sriov_numvfs
 
 You can create up to 7 VFs on Intel UHD Graphics 
 
-## Arch Linux Installation Steps (Tested Kernel 6.12.6-zen1)
+## Arch Linux Installation Steps
 
 For Arch Linux users, it is available in AUR. [i915-sriov-dkms](https://aur.archlinux.org/packages/i915-sriov-dkms) 
-
 You also can download the package from the [releases page](https://github.com/strongtz/i915-sriov-dkms/releases) and install it with `pacman -U`.
 
-## NixOS Linux Installation Steps (Tested Kernel 6.12.36)
-For NixOS users, the i915-sriov kernel module can be directly included in your NixOS configuration without the use of DKMS. In particular, the kernel module is provided as a NixOS module that must be included in your NixOS configuration. This NixOS module places the i915-sriov kernel module via an overlay in your `pkgs` attribute set with the attribute name `i915-sriov`. This kernel module can then be included in your configuration by declaring `boot.extraModulePackages = [ pkgs.i915-sriov ];`
-
-## PVE Host Installation Steps (Tested Kernel 6.8)
+## PVE Host Installation Steps (PVE 9 with Kernel 6.14)
 1. Install build tools: `apt install build-* dkms`
-1. Install the kernel and headers for desired version: `apt install proxmox-headers-6.8 proxmox-kernel-6.8` (for unsigned kernel).
+1. Install the kernel and headers for desired version: `apt install proxmox-headers-6.14 proxmox-kernel-6.14` (for unsigned kernel).
 1. Download deb package from the [releases page](https://github.com/strongtz/i915-sriov-dkms/releases)
    ```sh
-   wget -O /tmp/i915-sriov-dkms_2025.07.22_amd64.deb "https://github.com/strongtz/i915-sriov-dkms/releases/download/2025.07.22/i915-sriov-dkms_2025.07.22_amd64.deb"
+   wget -O /tmp/i915-sriov-dkms_2025.10.09_amd64.deb "https://github.com/strongtz/i915-sriov-dkms/releases/download/2025.10.09-2/i915-sriov-dkms_2025.10.09_amd64.deb"
    ```
-1. Install the deb package with dpkg: `dpkg -i /tmp/i915-sriov-dkms_2025.07.22_amd64.deb`
+1. Install the deb package with dpkg: `dpkg -i /tmp/i915-sriov-dkms_2025.10.09_amd64.deb`
 1. Once finished, the kernel commandline needs to be adjusted: `nano /etc/default/grub` and change `GRUB_CMDLINE_LINUX_DEFAULT` to `intel_iommu=on i915.enable_guc=3 i915.max_vfs=7 module_blacklist=xe`, or add to it if you have other arguments there already.
+1. You can also use `xe` driver instead of `i915` as described in the [Required Kernel Parameters](https://github.com/strongtz/i915-sriov-dkms?tab=readme-ov-file#required-kernel-parameters) section.
 1. Update `grub` and `initramfs` by executing `update-grub` and `update-initramfs -u`
 1. Optionally pin the kernel version and update the boot config via `proxmox-boot-tool`.
-1. In order to enable the VFs, a `sysfs` attribute must be set. Install `sysfsutils`, then do `echo "devices/pci0000:00/0000:00:02.0/sriov_numvfs = 7" > /etc/sysfs.conf`, assuming your iGPU is on 00:02 bus. If not, use `lspci | grep VGA` to find the PCIe bus your iGPU is on.
+1. In order to enable the VFs, a `sysfs` attribute must be set. Install `sysfsutils`, then do `echo "devices/pci0000:00/0000:00:02.0/sriov_numvfs = 7" > /etc/sysfs.conf`.
 1. Reboot the system.
-1. When the system is back up again, you should see the number of VFs under 02:00.1 - 02:00.7. Again, assuming your iGPU is on 00:02 bus.
+1. When the system is back up again, you should see the number of VFs under 02:00.1 - 02:00.7.
 1. You can passthrough the VFs to LXCs or VMs. However, never pass the **PF (02:00.0)** to **VM** which would crash all other VFs.
 
-## Linux Guest Installation Steps (Tested Ubuntu 24.04/Kernel 6.8)
+## Linux Guest Installation Steps (Tested Ubuntu 25.04/Kernel 6.14)
 We will need to run the same driver under Linux guests. 
 1. Install build tools
    ```
@@ -65,16 +72,11 @@ We will need to run the same driver under Linux guests.
    ```
 2. Download and install the `.deb`
    ```
-   wget -O /tmp/i915-sriov-dkms_2025.07.22_amd64.deb "https://github.com/strongtz/i915-sriov-dkms/releases/download/2025.07.22/i915-sriov-dkms_2025.07.22_amd64.deb"
-   dpkg -i /tmp/i915-sriov-dkms_2025.07.22_amd64.deb
+   wget -O /tmp/i915-sriov-dkms_2025.10.09_amd64.deb "https://github.com/strongtz/i915-sriov-dkms/releases/download/2025.10.09-2/i915-sriov-dkms_2025.10.09_amd64.deb"
+   dpkg -i /tmp/i915-sriov-dkms_2025.10.09_amd64.deb
    ```
 3. Update kernel parameters
    `nano /etc/default/grub` and change `GRUB_CMDLINE_LINUX_DEFAULT` to `i915.enable_guc=3 module_blacklist=xe`, or add to it if you have other arguments there already.
-
-   Example:
-   ```conf
-   GRUB_CMDLINE_LINUX_DEFAULT="intel_iommu=on i915.enable_guc=3 module_blacklist=xe"
-   ```
 
 4. Once that's done, update `grub` and `initramfs`, then reboot.
    ```
@@ -126,18 +128,16 @@ hostpci0: 0000:00:02.1,pcie=1,romfile=Intelgopdriver_desktop.efi,x-vga=1
 
 ![CleanShot 2025-01-27 at 12 26 28](https://github.com/user-attachments/assets/7e48877f-2b57-42ac-bd0b-c1aa72bddc40)
 
-See also: https://github.com/strongtz/i915-sriov-dkms/issues/8#issuecomment-1567465036
-
 ## Manual Installation Steps
 1. Install build tools: `apt install build-essential dkms git` / `pacman -S base-devel dkms git`.
 1. Install the kernel and headers for desired version: `apt install linux-headers-$(uname -r)` / `pacman -S linux-headers`.
 1. Clone the repository: `git clone https://github.com/strongtz/i915-sriov-dkms.git`.
 1. Add the module to DKMS: `dkms add ./i915-sriov-dkms`.
-1. Install the module with DKMS: `dkms install i915-sriov-dkms/2025.07.22`.
+1. Install the module with DKMS: `dkms install i915-sriov-dkms/2025.10.09`.
 1. If you have secureboot enabled, and `dkms install` tells you it created a self-signed certificate for MOK and you have not installed the host's certificate yet, install the certificate generated by dkms with `mokutil --import /var/lib/dkms/mok.pub`.
 1. Once finished, the kernel commandline needs to be adjusted: `nano /etc/default/grub` and change `GRUB_CMDLINE_LINUX_DEFAULT` to `intel_iommu=on i915.enable_guc=3 i915.max_vfs=7`, or add to it if you have other arguments there already.
 1. Update `grub` and `initramfs` by executing `update-grub` and `update-initramfs -u` / for Arch Linux `grub-mkconfig -o /boot/grub/grub.cfg` and `mkinitcpio -P`.
-1. Optionally use `sysfsutils` to set the number of VFs on boot. Install `sysfsutils`, then do `echo "devices/pci0000:00/0000:00:02.0/sriov_numvfs = 7" > /etc/sysfs.conf`, assuming your iGPU is on 00:02 bus. If not, use `lspci | grep VGA` to find the PCIe bus your iGPU is on.
+1. Optionally use `sysfsutils` to set the number of VFs on boot. Install `sysfsutils`, then do `echo "devices/pci0000:00/0000:00:02.0/sriov_numvfs = 7" > /etc/sysfs.conf`,
 1. Reboot the system.
 
 ## Uninstallation
@@ -146,7 +146,7 @@ Remove the package with `dpkg -P i915-sriov-dkms`
 ### pacman
 Remove the package with `pacman -R i915-sriov-dkms`
 ### manual
-Remove the dkms module with `dkms remove i915-sriov-dkms/2025.07.22`
+Remove the dkms module with `dkms remove i915-sriov-dkms/2025.10.09`
 
 # Credits
 

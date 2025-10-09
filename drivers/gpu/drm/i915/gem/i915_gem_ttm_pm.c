@@ -2,7 +2,6 @@
 /*
  * Copyright © 2021 Intel Corporation
  */
-#include <linux/version.h>
 
 #include <drm/ttm/ttm_placement.h>
 #include <drm/ttm/ttm_tt.h>

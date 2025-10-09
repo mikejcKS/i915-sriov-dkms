@@ -24,8 +24,6 @@
 #ifndef _INTEL_DSI_H
 #define _INTEL_DSI_H
 
-#include <linux/version.h>
-
 #include <drm/drm_crtc.h>
 #include <drm/drm_mipi_dsi.h>
 
@@ -166,7 +164,7 @@ int intel_dsi_tlpx_ns(const struct intel_dsi *intel_dsi);
 enum drm_panel_orientation
 intel_dsi_get_panel_orientation(struct intel_connector *connector);
 int intel_dsi_get_modes(struct drm_connector *connector);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6,15,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0)
 enum drm_mode_status intel_dsi_mode_valid(struct drm_connector *connector,
 					  struct drm_display_mode *mode);
 #else
