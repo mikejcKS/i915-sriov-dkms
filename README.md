@@ -2,6 +2,9 @@
 
 This repo is a code snapshot of the i915 and xe modules from the mainline linux kernel with SR-IOV support ported from the [intel/mainline-tracking.git](https://github.com/intel/mainline-tracking.git)
 
+**Disclaimer:** This repository is a community port of the mainline kernel and Intel’s mainline-tracking tree.  
+It includes some experimental and unstable features and is not an official Intel project.
+
 ## Warning
 
 This package is **highly experimental**, you should only use it when you know what you are doing.
@@ -9,7 +12,7 @@ This package is **highly experimental**, you should only use it when you know wh
 You need to install this dkms module in **both host and guest!**
 
 ## Required kernel versions
-Required kernel: **6.12.20 ~ 6.17.x**
+Required kernel: **6.12.19 ~ 6.17.x**
 
 For older versions of the kernel (v6.8 ~ v6.12), please use the [2025.07.22](https://github.com/strongtz/i915-sriov-dkms/releases/tag/2025.07.22) release.
 
@@ -32,6 +35,8 @@ intel_iommu=on i915.enable_guc=3 i915.max_vfs=7 module_blacklist=xe
 intel_iommu=on xe.max_vfs=7 xe.force_probe=${device_id} module_blacklist=i915
 ```
 
+**Xe module only supports Gen12(Alder Lake), Gen13(Raptor Lake) and Gen14(Raptor Lake Refresh) for now**
+
 Replace `${device_id}` with the output from `cat /sys/devices/pci0000:00/0000:00:02.0/device` command
 
 ## Creating Virtual Functions (VF)
@@ -47,14 +52,18 @@ You can create up to 7 VFs on Intel UHD Graphics
 For Arch Linux users, it is available in AUR. [i915-sriov-dkms](https://aur.archlinux.org/packages/i915-sriov-dkms) 
 You also can download the package from the [releases page](https://github.com/strongtz/i915-sriov-dkms/releases) and install it with `pacman -U`.
 
+## NixOS Linux Installation Steps (Tested Kernel 6.17)
+
+For NixOS users, the i915-sriov kernel module can be directly included in your NixOS configuration without the use of DKMS. In particular, the kernel module is provided as a NixOS module that must be included in your NixOS configuration. This NixOS module places the i915-sriov kernel module via an overlay in your `pkgs` attribute set with the attribute name `i915-sriov`. This kernel module can then be included in your configuration by declaring `boot.extraModulePackages = [ pkgs.i915-sriov ];` The same applies also to `xe-sriov`. It is recommened to set `inputs.nixpkgs.follows = "nixpkgs"` to avoid version mismatch.
+
 ## PVE Host Installation Steps (PVE 9 with Kernel 6.14)
 1. Install build tools: `apt install build-* dkms`
 1. Install the kernel and headers for desired version: `apt install proxmox-headers-6.14 proxmox-kernel-6.14` (for unsigned kernel).
 1. Download deb package from the [releases page](https://github.com/strongtz/i915-sriov-dkms/releases)
    ```sh
-   wget -O /tmp/i915-sriov-dkms_2025.10.09_amd64.deb "https://github.com/strongtz/i915-sriov-dkms/releases/download/2025.10.09-2/i915-sriov-dkms_2025.10.09_amd64.deb"
+   wget -O /tmp/i915-sriov-dkms_2025.10.10_amd64.deb "https://github.com/strongtz/i915-sriov-dkms/releases/download/2025.10.10/i915-sriov-dkms_2025.10.10_amd64.deb"
    ```
-1. Install the deb package with dpkg: `dpkg -i /tmp/i915-sriov-dkms_2025.10.09_amd64.deb`
+1. Install the deb package with dpkg: `dpkg -i /tmp/i915-sriov-dkms_2025.10.10_amd64.deb`
 1. Once finished, the kernel commandline needs to be adjusted: `nano /etc/default/grub` and change `GRUB_CMDLINE_LINUX_DEFAULT` to `intel_iommu=on i915.enable_guc=3 i915.max_vfs=7 module_blacklist=xe`, or add to it if you have other arguments there already.
 1. You can also use `xe` driver instead of `i915` as described in the [Required Kernel Parameters](https://github.com/strongtz/i915-sriov-dkms?tab=readme-ov-file#required-kernel-parameters) section.
 1. Update `grub` and `initramfs` by executing `update-grub` and `update-initramfs -u`
@@ -72,8 +81,8 @@ We will need to run the same driver under Linux guests.
    ```
 2. Download and install the `.deb`
    ```
-   wget -O /tmp/i915-sriov-dkms_2025.10.09_amd64.deb "https://github.com/strongtz/i915-sriov-dkms/releases/download/2025.10.09-2/i915-sriov-dkms_2025.10.09_amd64.deb"
-   dpkg -i /tmp/i915-sriov-dkms_2025.10.09_amd64.deb
+   wget -O /tmp/i915-sriov-dkms_2025.10.10_amd64.deb "https://github.com/strongtz/i915-sriov-dkms/releases/download/2025.10.10/i915-sriov-dkms_2025.10.10_amd64.deb"
+   dpkg -i /tmp/i915-sriov-dkms_2025.10.10_amd64.deb
    ```
 3. Update kernel parameters
    `nano /etc/default/grub` and change `GRUB_CMDLINE_LINUX_DEFAULT` to `i915.enable_guc=3 module_blacklist=xe`, or add to it if you have other arguments there already.
@@ -133,7 +142,7 @@ hostpci0: 0000:00:02.1,pcie=1,romfile=Intelgopdriver_desktop.efi,x-vga=1
 1. Install the kernel and headers for desired version: `apt install linux-headers-$(uname -r)` / `pacman -S linux-headers`.
 1. Clone the repository: `git clone https://github.com/strongtz/i915-sriov-dkms.git`.
 1. Add the module to DKMS: `dkms add ./i915-sriov-dkms`.
-1. Install the module with DKMS: `dkms install i915-sriov-dkms/2025.10.09`.
+1. Install the module with DKMS: `dkms install i915-sriov-dkms/2025.10.10`.
 1. If you have secureboot enabled, and `dkms install` tells you it created a self-signed certificate for MOK and you have not installed the host's certificate yet, install the certificate generated by dkms with `mokutil --import /var/lib/dkms/mok.pub`.
 1. Once finished, the kernel commandline needs to be adjusted: `nano /etc/default/grub` and change `GRUB_CMDLINE_LINUX_DEFAULT` to `intel_iommu=on i915.enable_guc=3 i915.max_vfs=7`, or add to it if you have other arguments there already.
 1. Update `grub` and `initramfs` by executing `update-grub` and `update-initramfs -u` / for Arch Linux `grub-mkconfig -o /boot/grub/grub.cfg` and `mkinitcpio -P`.
@@ -146,7 +155,7 @@ Remove the package with `dpkg -P i915-sriov-dkms`
 ### pacman
 Remove the package with `pacman -R i915-sriov-dkms`
 ### manual
-Remove the dkms module with `dkms remove i915-sriov-dkms/2025.10.09`
+Remove the dkms module with `dkms remove i915-sriov-dkms/2025.10.10`
 
 # Credits
 
