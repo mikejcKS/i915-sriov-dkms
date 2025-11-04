@@ -12,9 +12,11 @@ This package is **highly experimental**, you should only use it when you know wh
 You need to install this dkms module in **both host and guest!**
 
 ## Required kernel versions
-Required kernel: **6.12.19 ~ 6.17.x**
+Required kernel: **6.12.19 ~ 6.18.x**
 
-For older versions of the kernel (v6.8 ~ v6.12), please use the [2025.07.22](https://github.com/strongtz/i915-sriov-dkms/releases/tag/2025.07.22) release.
+For **v6.18**, please use the latest **prerelease** [2025.11.04-rc1](https://github.com/strongtz/i915-sriov-dkms/releases/tag/2025.11.04-rc1).
+
+For older kernel (v6.8 ~ v6.12), please use the [2025.07.22](https://github.com/strongtz/i915-sriov-dkms/releases/tag/2025.07.22) release.
 
 For v6.1 ~ v6.7, please use [intel-lts-v6.1](https://github.com/strongtz/i915-sriov-dkms/tree/intel-lts-v6.1) branch instead.
 
